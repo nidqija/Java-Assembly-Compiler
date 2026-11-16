@@ -52,7 +52,7 @@ public class Lexer {
     
 
 
-    // record function to log the type of token and exact line and columns in code , 
+    // record class to log the type of token and exact line and columns in code , 
     // the token is being assigned to
     public record Token(TokenType type , String lexeme , int line , int column){
 
@@ -198,18 +198,18 @@ public class Lexer {
     }
 
 
-    // helper function to iterate through the token for spell check
+    // helper function to scan one token and move to the next token
     private char advance(){
         column++;
         return source.charAt(current++);
     }
 
-    // helper function to return the end of file source code 
+    // returns the current character without consuming it
     private char peek(){
         return isAtEnd() ? '\0' : source.charAt(current);
     }
 
-    // helper function to return the EOF length of source code
+    // check if the scanner has reached end of file , it will return true or false
     private boolean isAtEnd() {
         return current >= source.length();
     }
