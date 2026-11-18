@@ -1,42 +1,58 @@
 # Java to Assembly Compiler
 
-A custom compiler written in Java that translates a subset of Java source code into assembly language. 
+A custom compiler written in Java that translates a subset of Java source code into assembly language.
 
-Currently, **Stage 1 (Lexical Analysis / Tokenizer)** is fully implemented and tested.
+- **Stage 1 (Lexical Analysis / Tokenizer):** Complete & Verified ✅
+- **Stage 2 (Syntax Analysis / Parser):** In Progress 🚧
 
 ---
 
-## 🚀 Features (Stage 1: Lexer)
+## 🚀 Features
 
-The lexer scans raw Java-like source code and produces a sequence of categorized, position-aware tokens:
-
+### Stage 1: Lexer (Tokenizer)
+The lexer converts raw Java-like source code into a stream of categorized, position-aware tokens:
 - **Keywords:** `public`, `class`, `static`, `void`, `int`, `boolean`, `String`, `if`, `else`, `while`, `return`, `true`, `false`, `print`
 - **Literals:**
   - Integer numbers (`NUMBER`)
   - String literals (`STRING`, e.g., `"Hello world!"`)
 - **Identifiers:** Variable names, function names, class names
-- **Built-in Handling:** Recognizes `System.out.println` as a `PRINT` token
+- **Built-in Recognition:** Maps `System.out.println` directly to a `PRINT` token
 - **Operators & Delimiters:**
   - Arithmetic: `+`, `-`, `*`, `/`
   - Comparison & Assignment: `=`, `==`, `!`, `!=`, `<`, `<=`, `>`, `>=`
-  - Punctuation: `(`, `)`, `{`, `}`, `[`, `]`, `;`, `,`, `.`
-- **Comments & Whitespace:**
-  - Single-line comments (`// ...`) are skipped automatically
-  - Accurate line and column position tracking across all tokens
-- **Error Reporting:**
-  - Detects unterminated strings and illegal/unexpected characters with line and column numbers
+  - Delimiters: `(`, `)`, `{`, `}`, `[`, `]`, `;`, `,`, `.`
+- **Comments & Position Tracking:**
+  - Automatically skips single-line comments (`// ...`) and whitespace
+  - Accurately tracks `line` and `column` numbers for detailed error reporting
+
+### Stage 2: Parser (AST Construction - In Progress)
+- Skeleton and stream navigation helpers implemented (`peek`, `previous`, `advance`, `checkTokenType`, `match`, `consume`).
+- Prepares token stream for AST node generation and syntax enforcement.
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-Java_Compiler_Assembly/
-├── example-repo/
-│   ├── Lexer.java        # Core Lexer implementation, TokenType enum, and Token record
-│   ├── Main.java         # Driver program to test tokenization on sample source code
-│   └── README.md         # Project documentation
+example-repo/
+├── .github/
+│   └── workflows/
+│       └── build.yml      # GitHub Actions CI workflow (auto-build & test)
+├── .gitignore             # Ignores compiled .class files and temporary build artifacts
+├── Lexer.java             # Stage 1: Lexical analyzer (TokenType enum, Token record)
+├── Parser.java            # Stage 2: Syntax analyzer (Token stream navigation & AST parser)
+├── Main.java              # Test driver executing sample programs through the pipeline
+└── README.md              # Project documentation and changelog
 ```
+
+---
+
+## ⚙️ CI/CD Automation (GitHub Actions)
+
+A GitHub Actions workflow is configured in `.github/workflows/build.yml` to ensure code stability:
+- **Triggers:** Automatically compiles and tests on every `push` and `pull_request` to `master` and `main`.
+- **Manual Trigger:** Includes `workflow_dispatch` enabling on-demand manual runs directly from the GitHub Actions tab.
+- **Environment:** Runs on `ubuntu-latest` with Eclipse Temurin JDK 17.
 
 ---
 
@@ -45,26 +61,26 @@ Java_Compiler_Assembly/
 ### Prerequisites
 - **Java Development Kit (JDK 17 or higher)**
 
-### Building and Running
+### Building and Running Locally
 
 1. **Navigate to the repository folder:**
    ```bash
    cd example-repo
    ```
 
-2. **Compile the sources:**
+2. **Compile all Java source files:**
    ```bash
-   javac Lexer.java Main.java
+   javac *.java
    ```
 
-3. **Run the driver:**
+3. **Run the test driver:**
    ```bash
    java Main
    ```
 
 ### Sample Output
 
-Given the input:
+Given sample input code:
 ```java
 public class Test {
     public static void main(String[] args) {
@@ -110,13 +126,19 @@ EOF            '' (line 12, col 1)
 ## 🗺️ Roadmap
 
 - [x] **Stage 1: Lexer** (Tokenization, keyword mapping, position tracking)
-- [ ] **Stage 2: Parser** (Abstract Syntax Tree / AST generation, grammar validation)
+- [ ] **Stage 2: Parser** (In Progress: Token navigation, AST nodes, grammar validation)
 - [ ] **Stage 3: Semantic Analysis** (Type checking, symbol table, scope resolution)
 - [ ] **Stage 4: Code Generation** (Translation of AST/IR to Assembly)
 
 ---
 
 ## 📝 Changelog
+
+- **v0.2.0** - *Parser Foundation & CI/CD*
+  - Added `Parser.java` scaffold with token stream navigation (`peek`, `advance`, `match`, `consume`).
+  - Added GitHub Actions CI workflow (`.github/workflows/build.yml`) with automated triggers and manual `workflow_dispatch`.
+  - Added `.gitignore` to prevent tracking compiled `.class` files.
+  - Updated documentation to reflect compiler architecture and stages.
 
 - **v0.1.0** - *Stage 1: Lexer Implementation*
   - Added `TokenType` registry covering keywords, literals, operators, and delimiters.
@@ -127,4 +149,3 @@ EOF            '' (line 12, col 1)
   - Added fast keyword lookup table via `KEYWORDS` map.
   - Added built-in recognition for `System.out.println`.
   - Added test runner in `Main.java` with sample Java source code.
-
