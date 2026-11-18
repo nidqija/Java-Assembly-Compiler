@@ -24,7 +24,6 @@ public class Lexer {
     // enum to act as a registry to types of tokens being assigned in lexer 
     public enum TokenType {
 
-
         // keywords
         PUBLIC , CLASS , VOID , INT , BOOLEAN , 
         IF , ELSE , WHILE , RETURN , TRUE , FALSE,
