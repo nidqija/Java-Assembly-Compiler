@@ -134,6 +134,11 @@ EOF            '' (line 12, col 1)
 
 ## 📝 Changelog
 
+- **v0.3.0** - *AST Definitions & Expression/Statement Parser*
+  - Added `AST.java` modeling complete node hierarchies (Program, ClassDecl, MethodDecl, Parameter, Stmt, Expr) using Java 17 sealed interfaces and immutable records.
+  - Implemented full expression precedence parser in `Parser.java` (assignment, logical OR/AND, equality, comparison, addition/subtraction, multiplication/division, unary, literals/grouping).
+  - Implemented statement parsing in `Parser.java` (`if/else`, `while`, `print`, `return`, variable declarations, and nested `{ block }` statements).
+
 - **v0.2.0** - *Parser Foundation & CI/CD*
   - Added `Parser.java` scaffold with token stream navigation (`peek`, `advance`, `match`, `consume`).
   - Added GitHub Actions CI workflow (`.github/workflows/build.yml`) with automated triggers and manual `workflow_dispatch`.
