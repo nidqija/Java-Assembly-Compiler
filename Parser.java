@@ -1,6 +1,8 @@
 import java.util.*;
 
 
+
+
 public class Parser {
 
 
@@ -65,7 +67,9 @@ public class Parser {
         return false;
     }
 
-    // helper function to consume each token to generate the AST
+    // helper function to consume each token to generate the AST node
+    // if the detected token is not the same as what we preset , 
+    // we will throw an error using runtime exception, to proceed the program still
     private Lexer.Token consume(Lexer.TokenType type , String message){
         if(checkTokenType(type)){
             return advance();
@@ -73,4 +77,307 @@ public class Parser {
 
         throw new RuntimeException("[Line " + peek().line() + "] Parser Error: " + message + " (got '" + peek().lexeme() + "')");
     }
-}
+
+
+    public AST.Expr expression(){
+        return assignment();
+    }
+
+    public AST.Expr assignment(){
+        AST.Expr expr = logicOr();
+
+
+        // check if the token detected is an assign token ( = )
+        if(match(Lexer.TokenType.ASSIGN)){
+            Lexer.Token equals = previous();
+            AST.Expr value = assignment();
+
+             if (expr instanceof AST.Expr.Variable var){
+                 return new AST.Expr.Assign(var.name() , value);
+            }
+            
+            throw new RuntimeException("[Line " + equals.line() + "] Invalid assignment target.");
+        }
+
+        return expr;
+
+
+
+    }
+
+
+    // generating ast nodes for or
+    private AST.Expr logicOr(){
+        AST.Expr expr= logicAnd();
+
+
+        while (match(Lexer.TokenType.OR)){
+            Lexer.Token operator = previous();
+            AST.Expr right = logicAnd();
+            expr = new AST.Expr.Binary(expr , operator , right);
+        }
+
+        return expr;
+    }
+
+
+    // generating ast nodes for and
+    private AST.Expr logicAnd(){
+        AST.Expr expr = equality();
+
+        while(match(Lexer.TokenType.AND)){
+            Lexer.Token operator = previous();
+            AST.Expr right = equality();
+            expr = new AST.Expr.Binary(expr , operator , right);
+        }
+
+        return expr;
+    }
+
+    // generating ast nodes for equality ==
+    private AST.Expr equality(){
+        AST.Expr expr = comparison();
+
+        while(match(Lexer.TokenType.EQUAL , Lexer.TokenType.NOT_EQUAL)){
+            Lexer.Token operator = previous();
+            AST.Expr right = comparison();
+            expr = new AST.Expr.Binary(expr , operator , right);
+        }
+
+        return expr;
+    }
+
+    // generating ast nodes for comparison < , > , <= , >=
+    private AST.Expr comparison(){
+        AST.Expr expr = term();
+
+        while(match(Lexer.TokenType.LESS , Lexer.TokenType.LESS_EQUAL, Lexer.TokenType.GREATER , Lexer.TokenType.GREATER_EQUAL )){
+            Lexer.Token operator = previous();
+            AST.Expr right = term();
+            expr = new AST.Expr.Binary(expr , operator , right);
+            };
+
+
+        return expr;
+        }
+    
+
+
+        // ast parsing for addition and substraction
+        private AST.Expr term(){
+            AST.Expr expr = factor();
+
+            while(match(Lexer.TokenType.PLUS , Lexer.TokenType.MINUS)){
+                Lexer.Token operator = previous();
+                AST.Expr right = factor();
+
+                
+                expr = new AST.Expr.Binary(expr , operator , right);
+            }
+
+            return expr;
+        }
+
+        private AST.Expr factor(){
+            AST.Expr expr = unary();
+
+            while(match(Lexer.TokenType.MULTIPLY , Lexer.TokenType.DIVIDE)){
+                Lexer.Token operator = previous();
+                AST.Expr right = unary();
+                expr = new AST.Expr.Binary(expr , operator , right);
+            }
+
+            return expr;
+        }
+
+
+        private AST.Expr unary(){
+            if(match(Lexer.TokenType.BANG , Lexer.TokenType.MINUS)){
+                Lexer.Token operator = previous();
+                AST.Expr right = unary();
+
+                return new AST.Expr.Unary(operator , right);
+            }
+
+            return primary();
+        }
+
+
+        private AST.Expr primary(){
+            if(match(Lexer.TokenType.FALSE)){
+                return new AST.Expr.BooleanLiteral(false);
+            }
+
+            if(match(Lexer.TokenType.TRUE)){
+                return new AST.Expr.BooleanLiteral(true);
+            }
+
+            if(match(Lexer.TokenType.STRING)){
+
+                String raw = previous().lexeme();
+
+                String value = (raw.startsWith("\"") && raw.endsWith("\"") && raw.length() >= 2) ? raw.substring(1 , raw.length() - 1) : raw;
+
+                return new AST.Expr.StringLiteral(value);
+
+            }
+
+            if (match(Lexer.TokenType.IDENTIFIER)){
+                return new AST.Expr.Variable(previous().lexeme());
+            }
+
+            if(match(Lexer.TokenType.LPAREN)){
+                AST.Expr expr = expression();
+                consume(Lexer.TokenType.RPAREN, "Expect ')' after expression.");
+                return new AST.Expr.Grouping(expr);
+            }
+
+            if(match(Lexer.TokenType.NUMBER)){
+                int value = Integer.parseInt(previous().lexeme());
+                return new AST.Expr.NumberLiteral(value);
+            }
+
+            throw new RuntimeException("[Line " + peek().line() + "] Expect expression, got '" + peek().lexeme() + "'");
+        }
+
+
+
+        // helper function to analyze the if statements from the generated token
+     
+        private AST.Stmt ifStatements(){
+
+                     // from here , we will consume LPAREN token , if not exists
+                     // throw runtime exception error
+                     
+                    consume(Lexer.TokenType.LPAREN, "Expect '(' after 'if'.");
+
+                    // from here , we will check the condition of the if statement and run the expression function
+                    AST.Expr condition = expression();
+
+                    consume(Lexer.TokenType.RPAREN, "Expect ')' after if condition.");
+
+
+                    AST.Stmt thenBranch = statement();
+                    AST.Stmt elseBranch = null;
+
+                    if(match(Lexer.TokenType.ELSE)){
+                        elseBranch = statement();
+                    }
+
+                    return new AST.Stmt.If(condition , thenBranch , elseBranch);
+        }
+
+
+        private AST.Stmt whileStatement(){
+            consume(Lexer.TokenType.LPAREN,"Expect '(' after print." );
+            AST.Expr value = expression();
+
+            consume(Lexer.TokenType.RPAREN ,"Expect ')' after print.");
+
+            consume(Lexer.TokenType.SEMICOLON , "Expected ';' after print statement");
+
+            return new AST.Stmt.Print(value);
+        }
+
+
+        private AST.Stmt returnStatement(){
+            AST.Expr value = null;
+
+            if(!checkTokenType(Lexer.TokenType.SEMICOLON)){
+                value = expression();
+            }
+
+            consume(Lexer.TokenType.SEMICOLON , "Expected ';' after return statement");
+
+            return new AST.Stmt.Return(value);
+        }
+
+        private AST.Stmt varDeclaration(){
+            String type = previous().lexeme();
+            Lexer.Token name = consume(Lexer.TokenType.IDENTIFIER , "Expect variable name");
+            AST.Expr initializExpr = null;
+
+            if(match(Lexer.TokenType.ASSIGN)){
+                initializExpr= expression();
+            }
+
+            consume(Lexer.TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+
+            return new AST.Stmt.VarDecl(type , name.lexeme() , initializExpr);
+        }
+
+        private List <AST.Stmt> block(){
+            List<AST.Stmt> statements = new ArrayList<>();
+
+            while(!checkTokenType(Lexer.TokenType.RBRACE) && !isAtEnd()){
+                statements.add(statement());
+            }
+
+            consume(Lexer.TokenType.RBRACE , "Expected '}' after block");
+            return statements;
+        }
+
+        private AST.Stmt printStatement(){
+            consume(Lexer.TokenType.LPAREN, "Expect '(' after print.");
+            AST.Expr value = expression();
+            consume(Lexer.TokenType.RPAREN, "Expect ')' after print argument.");
+            consume(Lexer.TokenType.SEMICOLON, "Expect ';' after print statement.");
+
+            return new AST.Stmt.Print(value);
+        }
+
+        private AST.Stmt expressionStatement(){
+            AST.Expr expr = expression();
+
+            consume(Lexer.TokenType.SEMICOLON , "Expect ';' after expression");
+            return new AST.Stmt.ExpressionStmt(expr);
+        }
+
+
+
+
+
+
+
+
+        // statement parsing
+        // this function will assist in detecting any parsed tokens and dispatch them to the correct functions
+        
+        private AST.Stmt statement(){
+
+            // if the received token matched with the if token type
+            // parse the token received to the if statement function
+            if(match(Lexer.TokenType.IF)){
+                return ifStatements();
+            }
+
+
+            if(match(Lexer.TokenType.WHILE)){
+                return whileStatement();
+            }
+
+            if(match(Lexer.TokenType.PRINT)){
+                return printStatement();
+            }
+
+            if(match(Lexer.TokenType.RETURN)){
+                return returnStatement();
+            }
+
+            if (match(Lexer.TokenType.LBRACE)){
+                return new AST.Stmt.Block(block());
+            }
+
+            if(match(Lexer.TokenType.INT , Lexer.TokenType.BOOLEAN , Lexer.TokenType.STRING)){
+                return varDeclaration();
+            }
+
+
+            return expressionStatement();
+        }
+
+
+
+
+    }
+
