@@ -2,7 +2,6 @@ import java.util.*;
 
 
 
-
 public class Parser {
 
 
@@ -43,7 +42,8 @@ public class Parser {
     }
 
 
-    // check if the current token matches a type
+    // check if the current token matches a type from the lexer 
+
     private boolean checkTokenType( Lexer.TokenType type){
         if(isAtEnd()){
             return false;
@@ -54,7 +54,7 @@ public class Parser {
 
     // helper function to check the token matches with the given types
     // if its not matched , return false
-
+    // from the generated token , loop through all generated tokens and check if 
     private boolean match(Lexer.TokenType... types){
         for(Lexer.TokenType type : types){
 
@@ -79,10 +79,12 @@ public class Parser {
     }
 
 
+    // function to call code expressions , such as assignments
     public AST.Expr expression(){
         return assignment();
     }
 
+    // function to call assignemnt token to be made as ast node
     public AST.Expr assignment(){
         AST.Expr expr = logicOr();
 
@@ -91,6 +93,7 @@ public class Parser {
         if(match(Lexer.TokenType.ASSIGN)){
             Lexer.Token equals = previous();
             AST.Expr value = assignment();
+
 
              if (expr instanceof AST.Expr.Variable var){
                  return new AST.Expr.Assign(var.name() , value);
@@ -164,6 +167,7 @@ public class Parser {
 
 
         // ast parsing for addition and substraction
+        // we follow pemdas order , which we call factor first 
         private AST.Expr term(){
             AST.Expr expr = factor();
 
@@ -178,6 +182,10 @@ public class Parser {
             return expr;
         }
 
+        // ast parsing for mutiplication and substraction
+        // in this case , we check if there is unary expression first
+        //then we check if the parsed token is multiplcation or divide
+        // we call it to binary function 
         private AST.Expr factor(){
             AST.Expr expr = unary();
 
@@ -203,6 +211,7 @@ public class Parser {
         }
 
 
+        // helper function to detect any reserved keys such as booleans , string , identifier , number , and number
         private AST.Expr primary(){
             if(match(Lexer.TokenType.FALSE)){
                 return new AST.Expr.BooleanLiteral(false);
@@ -270,13 +279,14 @@ public class Parser {
 
         private AST.Stmt whileStatement(){
             consume(Lexer.TokenType.LPAREN,"Expect '(' after print." );
-            AST.Expr value = expression();
+            AST.Expr condition = expression();
 
             consume(Lexer.TokenType.RPAREN ,"Expect ')' after print.");
 
-            consume(Lexer.TokenType.SEMICOLON , "Expected ';' after print statement");
 
-            return new AST.Stmt.Print(value);
+            AST.Stmt body = statement();
+
+            return new AST.Stmt.While(condition, body);
         }
 
 
@@ -374,6 +384,93 @@ public class Parser {
 
 
             return expressionStatement();
+        }
+
+
+        // main function for parsing class AST structure
+        public AST.Program parse(){
+            List<AST.ClassDecl> classes = new ArrayList<>();
+
+            while(!isAtEnd()){
+                classes.add(classDeclaration());
+            }
+
+            return new AST.Program(classes);
+        }
+
+
+        private AST.ClassDecl classDeclaration(){
+            match(Lexer.TokenType.PUBLIC);
+            consume(Lexer.TokenType.CLASS, "Expect 'class' keyword");
+
+            Lexer.Token name = consume(Lexer.TokenType.IDENTIFIER, "Expected class name");
+
+            consume(Lexer.TokenType.LBRACE , "Expect '{' before class body");
+
+            List<AST.MethodDecl> methods = new ArrayList<>();
+
+            while(!checkTokenType(Lexer.TokenType.RBRACE) && !isAtEnd()){
+                methods.add(methodDeclaration());
+            }
+
+
+            consume(Lexer.TokenType.RBRACE , "Expect '}' after class body");
+            return new AST.ClassDecl(name.lexeme() , methods);
+            
+        }        // helper function to parse method 
+
+
+        // helper function to do method declaration , 
+        // checked if the generated lexer token matches with predefined public token 
+        // if the match function returns true , check if there is static token matched with the parsed lexer token
+        private AST.MethodDecl methodDeclaration(){
+            match(Lexer.TokenType.PUBLIC);
+
+            boolean isStatic = match(Lexer.TokenType.STATIC);
+
+            if(!match(Lexer.TokenType.VOID , 
+                Lexer.TokenType.INT,
+                Lexer.TokenType.BOOLEAN,
+                Lexer.TokenType.STRING
+            )){
+                consume(Lexer.TokenType.IDENTIFIER, "expect return type");
+            }
+            String returnType = previous().lexeme();
+
+            Lexer.Token name = consume(Lexer.TokenType.IDENTIFIER , "expected method name");
+
+            consume(Lexer.TokenType.LPAREN, "Expected '(' after method name");
+
+            List<AST.Parameter> parameters = new ArrayList<>();
+
+            if(!checkTokenType(Lexer.TokenType.RPAREN)){
+                do {
+                    StringBuilder paramType = new StringBuilder();
+
+                    if (match(Lexer.TokenType.INT , Lexer.TokenType.BOOLEAN , Lexer.TokenType.STRING)){
+                        paramType.append(previous().lexeme());
+                    } else {
+                        paramType.append(consume(Lexer.TokenType.IDENTIFIER, "Expect parameter type. ").lexeme());
+                    }
+
+                    if (match(Lexer.TokenType.LBRACK)){
+                        consume(Lexer.TokenType.RBRACK,"Expect ']' after '[' in parameter type." );
+                        paramType.append("[]");
+                    }
+
+
+                    Lexer.Token paramName = consume(Lexer.TokenType.IDENTIFIER, "Expect parameter name");
+
+                    parameters.add(new AST.Parameter(paramType.toString() , paramName.lexeme()));
+                } while (match(Lexer.TokenType.COMMA));
+            }
+
+            consume(Lexer.TokenType.RPAREN , "Expected ')' after parameters");
+            consume(Lexer.TokenType.LBRACE, "Expected '{' after method body");
+
+            AST.Stmt.Block body = new AST.Stmt.Block(block());
+
+            return new AST.MethodDecl(isStatic, returnType, name.lexeme(), parameters, body);
         }
 
 
