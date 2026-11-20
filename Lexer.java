@@ -62,7 +62,8 @@ public class Lexer {
     }
 
 
-    // helper function to scan all tokens and add tokens to be processed to the parser
+    // helper function to scan column and detect and add tokens to be processed to the parser
+
     private void  scanToken(){
         char c = advance();
 
@@ -232,7 +233,7 @@ public class Lexer {
         return true;
     }
 
-    // helper function to scan numbers
+    // helper function to scan for any number detected from each column
     private void scanNumber(){
         while(isDigit(peek())){
             advance();
@@ -242,12 +243,15 @@ public class Lexer {
     }
 
 
-    // helper function to scan identifiers
+    // helper function to scan for identifiers in each column position
     private void scanIdentifiers(){
+
+        // keep moving until the end of column position
         while(isAlphaNumeric(peek())){
             advance();
         }
 
+        // if columns detected has print statement , add the print token specifically for this phrase
         if(source.startsWith("System.out.println" , start)){
             while(current < start + "System.out.println".length()){
                 advance();
@@ -262,6 +266,7 @@ public class Lexer {
         addToken(type);
     }
 
+    // helper function to scan string selected from each column 
     private void scanString(){
         while(peek() != '"' && !isAtEnd()){
             if(peek() == '\n'){
@@ -284,18 +289,18 @@ public class Lexer {
 
 
     // helper function to return numbers
-    // this is for numbers such as integer types data
+    // this is for numbers such as 1 , 0 , 7 , 9
     private boolean isDigit(char c ){
         return c >= '0' && c <= '9';  
     }
 
     // helper function to return alphabets
-    // this is for identifiers such as variable names
+    // this is for identifiers such as letter in each column
     private boolean isAlpha(char c){
         return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
     }
 
-    // helper function to return alpha numerics
+    // helper function to return alphabets and numbers
     private boolean isAlphaNumeric(char c ){
         return isDigit(c) || isAlpha(c);
     }

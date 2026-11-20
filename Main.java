@@ -27,6 +27,12 @@ import java.util.List;
             for (Lexer.Token token : tokens){
                 System.out.println(token);
             }
+
+            Parser parser = new Parser(tokens);
+            AST.Program program = parser.parse();
+
+            System.out.println("\n=== PARSED AST PROGRAM ===");
+            System.out.println(program);
     }
 }
 
