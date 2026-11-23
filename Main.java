@@ -31,8 +31,24 @@ import java.util.List;
             Parser parser = new Parser(tokens);
             AST.Program program = parser.parse();
 
+
+            CodeGenerator codeGen = new CodeGenerator();
+            String sampletoCodeGen = codeGen.generate(program);
+
             System.out.println("\n=== PARSED AST PROGRAM ===");
             System.out.println(program);
+
+
+            System.out.println("\n=== ASSEMBLY CODE GENERATION ===");
+            System.out.println(sampletoCodeGen);
+
+            FileOut fileOut = new FileOut();
+            fileOut.getFIleSource(sampletoCodeGen);
+
+           
+
+
+
     }
 }
 

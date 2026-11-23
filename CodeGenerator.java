@@ -26,21 +26,30 @@ public class CodeGenerator {
 
         textSection.append(".intel_syntax noprefix\n");
         textSection.append(".global main\n");
-        textSection.append(".extend puts\n\n");
+        textSection.append(".extern puts\n\n");
         textSection.append(".section .text\n");
 
         for(AST.ClassDecl cd : program.classes()){
             generateClass(cd);
         }
 
-        return textSection.toString();
+
+        StringBuilder dataSection = new StringBuilder();
+
+        dataSection.append(".section data\n");
+
+        for(Map.Entry<String , String> entry : stringLiterals.entrySet()){
+            dataSection.append(String.format(" %s: .asciz \"%s\"\n", entry.getValue() , entry.getKey()));
+        }
+
+        return dataSection.toString() + textSection.toString();
     }
 
 
 
     private void generateClass(AST.ClassDecl classDecl){
         for(AST.MethodDecl md : classDecl.methods()){
-            
+            generateMethod(md);
         }
     }
 
@@ -63,10 +72,18 @@ public class CodeGenerator {
 
 
             for(AST.Stmt stmt : methodDecl.body().statements()){
-                
+                generateStatements(stmt);
             }
 
 
+            textSection.append(currentMethodEndLabel).append(":\n");
+            if (methodName.equals("main")){
+                textSection.append("    mov rax, 0\n");
+            }
+
+           textSection.append("    mov rsp, rbp\n");
+           textSection.append("    pop rbp\n");
+           textSection.append("    ret\n");
 
     }
 
@@ -96,7 +113,7 @@ public class CodeGenerator {
             String endLabel = ".L_endif_" + (nextLabelId++);
 
 
-            generateCondition(ifStatements.condition(), endLabel);
+            generateCondition(ifStatements.condition(), elseLabel);
             generateStatements(ifStatements.thenBranch());
             textSection.append("    jmp ").append(endLabel).append("\n");
             textSection.append(elseLabel).append(":\n");
@@ -130,19 +147,24 @@ public class CodeGenerator {
             switch(binary.operator().type()){
                 case LESS_EQUAL:
                    textSection.append("    jg ").append(jumpTargetOnFalse).append("\n");
+                   break;
 
                 case LESS:
-                   textSection.append("    jge").append(jumpTargetOnFalse).append("\n");
+                   textSection.append("    jge ").append(jumpTargetOnFalse).append("\n");
+                   break;
 
                 case GREATER:
                    textSection.append("    jle ").append(jumpTargetOnFalse).append("\n");
+                   break;
 
 
                 case EQUAL:
                    textSection.append("    jne ").append(jumpTargetOnFalse).append("\n");
+                   break;
 
                 case GREATER_EQUAL:
-                   textSection.append("    jpe").append(jumpTargetOnFalse).append("\n");
+                   textSection.append("    jl ").append(jumpTargetOnFalse).append("\n");
+                   break;
 
                 default:
                     textSection.append("    je ").append(jumpTargetOnFalse).append("\n");
@@ -156,12 +178,12 @@ public class CodeGenerator {
     // helper function to generate code for expressions depending on expression flag
     private void generateExpressions(AST.Expr expression){
         if(expression instanceof AST.Expr.NumberLiteral numberLiteral){
-            textSection.append("  mov rax").append(numberLiteral.value()).append("\n");
+            textSection.append("   mov rax, ").append(numberLiteral.value()).append("\n");
 
         } else if(expression instanceof AST.Expr.Variable variable){
 
             int offset = localOffsets.get(variable.name());
-            textSection.append(" mov rax, [rbp - ").append(offset).append("[\n");
+            textSection.append(" mov rax, [rbp - ").append(offset).append("]\n");
         }
     }
 
