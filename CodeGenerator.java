@@ -49,24 +49,39 @@ public class CodeGenerator {
 
     private void generateClass(AST.ClassDecl classDecl){
         for(AST.MethodDecl md : classDecl.methods()){
-            generateMethod(md);
+            generateMethod( classDecl.name(), md);
         }
     }
 
 
-
-    private void generateMethod(AST.MethodDecl methodDecl){
+    // add classname to support multiple files parsing 
+    private void generateMethod( String className , AST.MethodDecl methodDecl){
             localOffsets.clear();
 
             currentStackOffSet = 0;
 
             String methodName = methodDecl.name();
 
-            textSection.append("\n").append(methodName).append(":\n");
+            // add non main method with classname_methodname
+            String labelName = methodName.equals("main") ? "main" : className + "_" + methodName;
+
+            // append to the top of assembly file 
+            textSection.append("\n").append(labelName).append(":\n");
 
             textSection.append("    push rbp\n");
             textSection.append("    mov rbp , rsp\n");
             textSection.append("    sub rsp, 32\n");
+
+
+            String[] argRegs = {"rcx" , "rdx" , "r8" , "r9"};
+
+
+            for(int i = 0 ; i < methodDecl.parameters().size() && i < 4 ; i++){
+                AST.Parameter param = methodDecl.parameters().get(i);
+                currentStackOffSet += 8;
+                localOffsets.put(param.name(), currentStackOffSet);
+                textSection.append("   mov [rbp - ").append(currentStackOffSet).append("],").append(argRegs[i]).append("\n");
+            }
 
             currentMethodEndLabel = ".L_" + methodName + "_end";
 
@@ -124,14 +139,17 @@ public class CodeGenerator {
 
             textSection.append(endLabel).append(":\n");
 
-        } else if (stmt instanceof AST.Stmt.Return){
-            textSection.append("    jmp ").append(currentMethodEndLabel).append("\n");
+        } else if (stmt instanceof AST.Stmt.Return returnKeyword){
+
+            if(returnKeyword.value() != null){
+                generateExpressions(returnKeyword.value());
+            }
 
         } else if (stmt instanceof AST.Stmt.Block block){
             for(AST.Stmt s : block.statements()){
                 generateStatements(s);
             }
-        }
+        } 
     }
 
 
@@ -184,6 +202,50 @@ public class CodeGenerator {
 
             int offset = localOffsets.get(variable.name());
             textSection.append(" mov rax, [rbp - ").append(offset).append("]\n");
+
+        } else if (expression instanceof AST.Expr.Call call){
+               String[] winRegs = { "rcx", "rdx", "r8", "r9" };
+               String[] linRegs = { "rdi", "rsi", "rdx", "rcx" };
+
+               for(int i = 0 ; i < call.arguments().size() && i< 4; i++ ){
+                generateExpressions(call.arguments().get(i));
+                textSection.append("    mov ").append(winRegs[i]).append(", rax\n");
+                textSection.append("    mov ").append(linRegs[i]).append(", rax\n");
+               }
+
+               String label = (call.className() != null) ? call.className() + "_" + call.methodName() : call.methodName();
+
+            textSection.append("    call ").append(label).append("\n");
+
+
+        
+        } else if (expression instanceof AST.Expr.Binary binary){
+            generateExpressions(binary.left());
+            textSection.append("    push rax\n");
+            generateExpressions(binary.right());
+            textSection.append("    mov rbx, rax\n");
+            textSection.append("    pop rax\n");
+
+            switch(binary.operator().type()){
+                case PLUS:
+                    textSection.append("    add rax, rbx\n");
+                    break;
+                case MINUS:
+                    textSection.append("    sub rax, rbx\n");
+                    break;
+                case MULTIPLY:
+                    textSection.append("    mul rbx\n");
+                    break;
+                case DIVIDE:
+                    textSection.append("    div rbx\n");
+                    break;
+              
+                default:
+                    textSection.append("    cmp rax, rbx\n");
+                    textSection.append("    sete al\n");
+                    textSection.append("    movzx rax, al\n");
+                    break;
+            }
         }
     }
 

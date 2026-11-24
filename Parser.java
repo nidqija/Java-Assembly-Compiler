@@ -43,7 +43,6 @@ public class Parser {
 
 
     // check if the current token matches a type from the lexer 
-
     private boolean checkTokenType( Lexer.TokenType type){
         if(isAtEnd()){
             return false;
@@ -232,7 +231,31 @@ public class Parser {
             }
 
             if (match(Lexer.TokenType.IDENTIFIER)){
-                return new AST.Expr.Variable(previous().lexeme());
+               // return new AST.Expr.Variable(previous().lexeme());
+
+                Lexer.Token first = previous();
+
+                if(match(Lexer.TokenType.DOT)){
+                    Lexer.Token methodName = consume(Lexer.TokenType.IDENTIFIER , "Expect method name after '.'");
+                    consume(Lexer.TokenType.LPAREN , "Expect '(' after method name");
+
+                    List<AST.Expr> arguments = parseArguments();
+
+                    consume(Lexer.TokenType.RPAREN , "Expect ')' after arguments");
+
+                    return  new AST.Expr.Call(first.lexeme(), methodName.lexeme() , arguments);
+                }
+
+
+                if(match(Lexer.TokenType.LPAREN)){
+                    List<AST.Expr> arguments = parseArguments();
+                    consume(Lexer.TokenType.RPAREN, "Expect ')' after arguments");
+                    
+                    return new AST.Expr.Call(null , first.lexeme() , arguments);
+                }
+
+                return new AST.Expr.Variable(first.lexeme());
+                
             }
 
             if(match(Lexer.TokenType.LPAREN)){
@@ -341,6 +364,25 @@ public class Parser {
 
             consume(Lexer.TokenType.SEMICOLON , "Expect ';' after expression");
             return new AST.Stmt.ExpressionStmt(expr);
+        }
+
+        // helper function to parse arguments from a function
+        private List<AST.Expr> parseArguments(){
+
+            // break down arguments into list of array
+            List<AST.Expr> arguments = new ArrayList<>();
+            // from the token being parsed before hitting right parenthesis in a function
+            if(!checkTokenType(Lexer.TokenType.RPAREN)){
+
+                // add expressions in an the arguments array list
+                // do it while the comma token is still being received
+                do {
+                    arguments.add(expression());
+                
+                } while(match(Lexer.TokenType.COMMA));
+            }
+
+            return arguments;
         }
 
 

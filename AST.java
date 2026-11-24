@@ -68,5 +68,7 @@ public class AST {
 
         record Grouping(Expr expr) implements Expr{}
 
+        record Call(String className , String methodName , List<Expr>arguments) implements Expr{}
+
     }
 }
