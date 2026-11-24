@@ -8,7 +8,9 @@ public class FileOut {
     public String getFileSource(String assemblyCodeGenerated){
 
         try {
-            Path fileOutput = Path.of("example-repo/assembly_code.asm");
+            Path fileOutput = Files.isDirectory(Path.of("example-repo"))
+                ? Path.of("example-repo/assembly_code.asm")
+                : Path.of("assembly_code.asm");
             Files.writeString(fileOutput, assemblyCodeGenerated);
             System.out.println("System successfully generated to: " + fileOutput);
             return assemblyCodeGenerated;

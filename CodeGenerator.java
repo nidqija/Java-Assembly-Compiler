@@ -18,31 +18,31 @@ public class CodeGenerator {
 
     public String generate(AST.Program program){
         textSection.setLength(0);
-
         stringLiterals.clear();
 
         nextStringId = 0;
         nextLabelId = 0;
 
-        textSection.append(".intel_syntax noprefix\n");
-        textSection.append(".global main\n");
-        textSection.append(".extern puts\n\n");
+        StringBuilder header = new StringBuilder();
+        header.append(".intel_syntax noprefix\n");
+        header.append(".global main\n");
+        header.append(".extern puts\n\n");
+
         textSection.append(".section .text\n");
 
         for(AST.ClassDecl cd : program.classes()){
             generateClass(cd);
         }
 
-
         StringBuilder dataSection = new StringBuilder();
-
-        dataSection.append(".section data\n");
+        dataSection.append(".section .data\n");
 
         for(Map.Entry<String , String> entry : stringLiterals.entrySet()){
-            dataSection.append(String.format(" %s: .asciz \"%s\"\n", entry.getValue() , entry.getKey()));
+            dataSection.append(String.format("    %s: .asciz \"%s\"\n", entry.getValue() , entry.getKey()));
         }
+        dataSection.append("\n");
 
-        return dataSection.toString() + textSection.toString();
+        return header.toString() + dataSection.toString() + textSection.toString();
     }
 
 
