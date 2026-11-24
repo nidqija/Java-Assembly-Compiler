@@ -21,10 +21,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Compile Java Sources
+      - name: Compile and Run Java Compiler
         run: |
           javac *.java
-
-      - name: Run Main Driver
-        run: |
           java Main
+
+      - name: Assemble and Execute Generated Assembly
+        run: |
+          gcc -x assembler -no-pie assembly_code.asm -o program
+          ./program
+
+  

@@ -1,12 +1,11 @@
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io. FileWriter;
+
 
 
 
 public class FileOut {
-    public String getFIleSource(String assemblyCodeGenerated){
+    public String getFileSource(String assemblyCodeGenerated){
 
         try {
             Path fileOutput = Path.of("example-repo/assembly_code.asm");

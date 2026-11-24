@@ -1,51 +1,48 @@
+import java.util.ArrayList;
 import java.util.List;
 
   public class Main {
     public static void main(String[] args) {
 
         
-        String sampleSource = """
-                public class Test {
+        String mainSource = """
+                public class Main {
                     public static void main(String[] args) {
-                    int x = 10;
-                    int y = 20;
-                    if (x <= y) {
-                        System.out.println("Hello world!");
-                    } else {
-                        return;
+                        int result = MathHelper.add(10, 20);
+                        System.out.println("Finished adding!");
                     }
-                }
                 }
                 """;
 
-            System.out.println(sampleSource);
 
-            Lexer lexer = new Lexer(sampleSource);
+        String mathSource = """
+                 public class MathHelper {
+                    public static int add(int a, int b) {
+                        return a + b;
+                    }
+                }
+                """;
 
-            List<Lexer.Token> tokens = lexer.tokenize();
-
-            for (Lexer.Token token : tokens){
-                System.out.println(token);
-            }
-
-            Parser parser = new Parser(tokens);
-            AST.Program program = parser.parse();
-
-
-            CodeGenerator codeGen = new CodeGenerator();
-            String sampletoCodeGen = codeGen.generate(program);
-
-            System.out.println("\n=== PARSED AST PROGRAM ===");
-            System.out.println(program);
-
-
-            System.out.println("\n=== ASSEMBLY CODE GENERATION ===");
-            System.out.println(sampletoCodeGen);
-
-            FileOut fileOut = new FileOut();
-            fileOut.getFIleSource(sampletoCodeGen);
+            System.out.println(mainSource + "\n");
+            System.out.println(mathSource);
 
            
+            
+            AST.Program program1 = new Parser(new Lexer(mathSource).tokenize()).parse();
+
+            AST.Program program2 = new Parser(new Lexer(mainSource).tokenize()).parse();
+
+            List<AST.ClassDecl> allClasses = new ArrayList<>();
+            allClasses.addAll(program1.classes());
+            allClasses.addAll(program2.classes());
+
+            AST.Program combinedProgram = new AST.Program(allClasses);
+
+            CodeGenerator codegen = new CodeGenerator();
+            String asm = codegen.generate(combinedProgram);
+
+            FileOut fileout = new FileOut();
+            fileout.getFileSource(asm);
 
 
 
