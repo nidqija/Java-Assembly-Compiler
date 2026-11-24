@@ -1,8 +1,9 @@
-.section data
- msg_0: .asciz "Finished adding!"
 .intel_syntax noprefix
 .global main
 .extern puts
+
+.section .data
+    msg_0: .asciz "Finished adding!"
 
 .section .text
 
